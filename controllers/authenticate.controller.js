@@ -64,11 +64,11 @@ const newAuthTokenFromRefreshToken = async (req, res) => {
         if (!refreshToken) return res.sendStatus(403);
         
         try {
-            const token = authUtil.verifyToken(refreshToken.token, process.env.REFRESH_TOKEN_SECRET);
-            if (!token) return res.sendStatus(403);
-            
-            const accessToken = new Credential(generateAccessToken({ username: token.username }));
-            res.json(accessToken.toJson());
+            authUtil.verifyToken(refreshToken.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+                if (err) return res.sendStatus(403);                
+                const accessToken = new Credential(generateAccessToken({ username: user.username }));
+                res.json(accessToken.toJson());
+            });
         }
 
         catch(ex) {
@@ -97,10 +97,11 @@ const authenticateToken = async (req, res, next) => {
     if (token == null) return res.sendStatus(401);
 
     try {
-        const verifiedToken = authUtil.verifyToken(token, process.env.ACCESS_TOKEN_SECRET);
-        if (!verifiedToken) return res.sendStatus(403);
-        req.user = verifiedToken;
-        next();
+        authUtil.verifyToken(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+            if (err) return res.sendStatus(403);
+            req.user = user;
+            next();
+        });
     } catch (ex) {
         res.status(500).json({message: ex});
     }

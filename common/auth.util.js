@@ -9,8 +9,8 @@ const signToken = (data, secret, options = {}) => {
     return jwt.sign(data, secret, options);
 }
 
-const verifyToken = (token, secret) =>  {
-    return jwt.verify(token, secret);
+const verifyToken = (token, secret, callback) =>  {
+    return jwt.verify(token, secret, callback);
 }
 
 const hashPassword = async (password) => {

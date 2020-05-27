@@ -1,4 +1,3 @@
-const bcrypt = require('bcrypt');
 const User = require('../models/user.model');
 const authUtil = require('../common/auth.util');
 
@@ -49,7 +48,7 @@ const findUserById = async (req, res) => {
 };
 
 module.exports = {
-    register, 
     getUser,
-    findUserById
+    findUserById,
+    register
 }
