@@ -1,7 +1,6 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const util = require('../common/util');
+const authUtil = require('../common/auth.util');
 
-const util = require('../common/util')
 const RefreshToken = require('../models/authenticate.model');
 
 // TODO move to class folder
@@ -19,7 +18,7 @@ class Credential {
     }
 
     decodeToken(token) {
-        return jwt.decode(token);
+        return authUtil.decodeToken(token);
     }
 
     toJson() {
@@ -34,14 +33,14 @@ const authenticate = async (req, res) => {
     if (!user) res.status(400).send('bad request');
 
     try {
-        if (await bcrypt.compare(password, user.password)) {
-            const accessToken = new Credential(generateAccessToken({ username: user.username }));
-            const refreshToken = generateRefreshToken({ username : user.username });
-            res.setHeader('Set-Cookie', `refreshToken=${refreshToken}; HttpOnly`);
-            res.json(accessToken.toJson());
-        } else {
-            res.status(400).send('Invalid Password');
-        }
+        const passwordsMatch = await authUtil.validatePassword(password, user.password);
+        if (!passwordsMatch) res.status(400).send('Invalid Password');
+
+        const accessToken = new Credential(generateAccessToken({ username: user.username }));
+        const refreshToken = generateRefreshToken({ username : user.username });
+        
+        res.setHeader('Set-Cookie', `refreshToken=${refreshToken}; HttpOnly`);
+        res.json(accessToken.toJson());
     } catch(ex) {
         res.status(500).send(ex);
     }
@@ -53,7 +52,7 @@ const removeAuthentication = async (req, res) => {
         if (!refreshToken) res.status(404).send();
         
         await refreshToken.remove();
-        res.status(204).send();
+        res.status(204).send('logout success');
     }
     catch (ex) {
         res.status(500).send('Can not log user out');
@@ -65,11 +64,11 @@ const newAuthTokenFromRefreshToken = async (req, res) => {
         if (!refreshToken) return res.sendStatus(403);
         
         try {
-            jwt.verify(refreshToken.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-              if (err) return res.sendStatus(403);
-              const accessToken = new Credential(generateAccessToken({ username: user.username }));
-              res.json(accessToken.toJson());
-            });
+            const token = authUtil.verifyToken(refreshToken.token, process.env.REFRESH_TOKEN_SECRET);
+            if (!token) return res.sendStatus(403);
+            
+            const accessToken = new Credential(generateAccessToken({ username: token.username }));
+            res.json(accessToken.toJson());
         }
 
         catch(ex) {
@@ -98,22 +97,21 @@ const authenticateToken = async (req, res, next) => {
     if (token == null) return res.sendStatus(401);
 
     try {
-        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-            if (err) return res.sendStatus(403);
-            req.user = user;
-            next();
-        });
+        const verifiedToken = authUtil.verifyToken(token, process.env.ACCESS_TOKEN_SECRET);
+        if (!verifiedToken) return res.sendStatus(403);
+        req.user = verifiedToken;
+        next();
     } catch (ex) {
         res.status(500).json({message: ex});
     }
 }
 
 const generateAccessToken = (user) => {
-    return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '60s'}); // TODO: set expire time in env
+    return authUtil.signToken(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '60s'});
 }
 
 const generateRefreshToken = (user) => {
-    const newToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET);
+    const newToken = authUtil.signToken(user, process.env.REFRESH_TOKEN_SECRET);
 
     try {
         let newRefresh = new RefreshToken({ username: user.username, token: newToken });

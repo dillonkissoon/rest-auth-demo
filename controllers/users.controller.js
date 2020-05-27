@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/user.model');
+const authUtil = require('../common/auth.util');
 
 const register = async (req, res) => {
     const { username, password } = req.body;
@@ -8,7 +9,7 @@ const register = async (req, res) => {
     if (user)  res.status(400).send('Bad Request');
 
     try {
-        const hashPassword = await bcrypt.hash(password, 10);
+        const hashPassword = await authUtil.hashPassword(password, 10);
         let newUser = new User({username: username, password: hashPassword});
         await newUser.save();
         res.status(201).send('User Created');
