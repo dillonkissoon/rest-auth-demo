@@ -60,25 +60,24 @@ const removeAuthentication = async (req, res) => {
 }
 
 const newAuthTokenFromRefreshToken = async (req, res) => {
-        const { refreshToken } = res;
-        if (!refreshToken) return res.sendStatus(403);
-        
-        try {
-            authUtil.verifyToken(refreshToken.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-                if (err) return res.sendStatus(403);                
-                const accessToken = new Credential(generateAccessToken({ username: user.username }));
-                res.json(accessToken.toJson());
-            });
-        }
+    const { refreshToken } = res;
+    if (!refreshToken) return res.sendStatus(403);
+    
+    try {
+        authUtil.verifyToken(refreshToken.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+            if (err) return res.sendStatus(403);                
+            const accessToken = new Credential(generateAccessToken({ username: user.username }));
+            res.json(accessToken.toJson());
+        });
+    }
 
-        catch(ex) {
-            res.status(500).send(ex);
-        }
+    catch(ex) {
+        res.status(500).send(ex);
+    }
 }
 
 const getRefreshTokenFromDb = async (req, res, next) => {
     const refreshToken = req.cookies['refreshToken'];
-
     if (!refreshToken) res.sendStatus(403);
 
     try {
@@ -111,10 +110,9 @@ const generateAccessToken = (user) => {
     return authUtil.signToken(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '60s'});
 }
 
-const generateRefreshToken = (user) => {
-    const newToken = authUtil.signToken(user, process.env.REFRESH_TOKEN_SECRET);
-
+const generateRefreshToken = (user) => {    
     try {
+        const newToken = authUtil.signToken(user, process.env.REFRESH_TOKEN_SECRET);
         let newRefresh = new RefreshToken({ username: user.username, token: newToken });
         newRefresh.save();
         return newToken;

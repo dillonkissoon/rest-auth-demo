@@ -1,0 +1,14 @@
+{
+    "swaggerDefinition": {
+        "info": {
+            "version": "1.0.0",
+            "title": "Auth API",
+            "description": "Authentication & Authorization backend",
+            "contact": {
+              "name": "Dillon Kissoon"
+            },
+            "servers": ["http://localhost:4000"]
+        }
+    },
+    "apis": ["./routes/authenticate.route.js"]
+}
