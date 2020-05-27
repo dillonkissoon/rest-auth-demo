@@ -3,6 +3,27 @@ const bcrypt = require('bcrypt');
 
 const RefreshToken = require('../models/authenticate.model');
 
+// TODO move to class folder
+class Credential {
+    constructor(token) {
+        this.token = token;
+        this.username = this.username();
+        this.expires = this.expires();
+    }
+
+    username() {
+        return this.decodeToken(this.token).username;
+    }
+
+    expires() {
+        return this.decodeToken(this.token).exp;
+    }
+
+    decodeToken(token) {
+        return jwt.decode(token);
+    }
+}
+
 const authenticate = async (req, res) => {
     const { password } = req.body;
     const user = await res.user;
@@ -11,10 +32,10 @@ const authenticate = async (req, res) => {
 
     try {
         if (await bcrypt.compare(password, user.password)) {
-            const accessToken = generateAccessToken({ username: user.username });
+            const accessToken = new Credential(generateAccessToken({ username: user.username }));
             const refreshToken = generateRefreshToken({ username : user.username });
             res.setHeader('Set-Cookie', `refreshToken=${refreshToken}; HttpOnly`);
-            res.json({ accessToken: accessToken });
+            res.json(accessToken);
         } else {
             res.status(400).send('Invalid Password');
         }
@@ -40,11 +61,17 @@ const newAuthTokenFromRefreshToken = async (req, res) => {
         const { refreshToken } = res;
         if (!refreshToken) return res.sendStatus(403);
         
-        jwt.verify(refreshToken.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-          if (err) return res.sendStatus(403);
-          const accessToken = generateAccessToken({ username: user.username });
-          res.json({ accessToken: accessToken });
-        });
+        try {
+            jwt.verify(refreshToken.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+              if (err) return res.sendStatus(403);
+              const accessToken = new Credential(generateAccessToken({ username: user.username }));
+              res.json(accessToken);
+            });
+        }
+
+        catch(ex) {
+            res.status(500).send(ex);
+        }
 }
 
 const getRefreshTokenFromDb = async (req, res, next) => {
