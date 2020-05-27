@@ -1,26 +1,29 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
+const util = require('../common/util')
 const RefreshToken = require('../models/authenticate.model');
 
 // TODO move to class folder
 class Credential {
     constructor(token) {
         this.token = token;
-        this.username = this.username();
-        this.expires = this.expires();
     }
 
-    username() {
+    get username() {
         return this.decodeToken(this.token).username;
     }
 
-    expires() {
+    get expires() {
         return this.decodeToken(this.token).exp;
     }
 
     decodeToken(token) {
         return jwt.decode(token);
+    }
+
+    toJson() {
+        return util.toJSON(this);
     }
 }
 
@@ -35,7 +38,7 @@ const authenticate = async (req, res) => {
             const accessToken = new Credential(generateAccessToken({ username: user.username }));
             const refreshToken = generateRefreshToken({ username : user.username });
             res.setHeader('Set-Cookie', `refreshToken=${refreshToken}; HttpOnly`);
-            res.json(accessToken);
+            res.json(accessToken.toJson());
         } else {
             res.status(400).send('Invalid Password');
         }
@@ -65,7 +68,7 @@ const newAuthTokenFromRefreshToken = async (req, res) => {
             jwt.verify(refreshToken.token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
               if (err) return res.sendStatus(403);
               const accessToken = new Credential(generateAccessToken({ username: user.username }));
-              res.json(accessToken);
+              res.json(accessToken.toJson());
             });
         }
 
