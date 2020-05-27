@@ -17,7 +17,7 @@ app.use(express.json());
 
 // API methods
 app.use('/api', router);
-app.use('/api/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {explorer: true}));
 
 app.listen(4000);
 

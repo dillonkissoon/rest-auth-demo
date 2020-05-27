@@ -6,12 +6,31 @@ const authController = require('../controllers/authenticate.controller');
 
 /**
  * @swagger
- * /login:
- * post:
- *  description: Authenticate user credentials
- *  responses: 
- *      '200':
- *         description: a successful response
+ * tags:
+ *   name: Authentication
+ *   description: Authentication and Authorization
+ */
+
+/**
+ * @swagger
+ * path:
+ *  /login:
+ *    post:
+ *      summary: Authenticate user credentails
+ *      tags: [Authentication]
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              
+ *      responses:
+ *        "200":
+ *          description: test
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: '#/components/schemas/Auth'
  */
 router.post('/login', usersController.getUser, authController.authenticate);
 
